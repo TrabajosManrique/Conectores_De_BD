@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Visualizador de Base de Datos</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 40px;
+            background-color: #f4f6f9;
+        }
+        h1 {
+            color: #333;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background-color: #fff;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        th, td {
+            padding: 12px 15px;
+            border: 1px solid #ddd;
+            text-align: left;
+        }
+        th {
+            background-color: #007bff;
+            color: white;
+        }
+        tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Lista de Usuarios en la Base de Datos</h1>
+    
+    <table>
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Nombre</th>
+                <th>Email</th>
+                <th>Fecha de Creación</th>
+            </tr>
+        </thead>
+        <tbody id="tabla-usuarios">
+            <tr>
+                <td colspan="4">Cargando datos...</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <script>
+        // Función en JS para pedir los datos a Node.js y renderizarlos
+        async function cargarUsuarios() {
+            try {
+                const response = await fetch('/api/usuarios');
+                const usuarios = await response.json();
+
+                const tbody = document.getElementById('tabla-usuarios');
+                tbody.innerHTML = '';
+
+                if (usuarios.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="4">No hay registros.</td></tr>';
+                    return;
+                }
+
+                usuarios.forEach(usuario => {
+                    const fila = document.createElement('tr');
+                    fila.innerHTML = `
+                        <td>${usuario.id}</td>
+                        <td>${usuario.nombre}</td>
+                        <td>${usuario.email}</td>
+                        <td>${new Date(usuario.created_at).toLocaleString()}</td>
+                    `;
+                    tbody.appendChild(fila);
+                });
+            } catch (error) {
+                console.error('Error al obtener datos:', error);
+                document.getElementById('tabla-usuarios').innerHTML = 
+                    '<tr><td colspan="4" style="color:red;">Error al cargar los datos. Verifique la conexión con el servidor.</td></tr>';
+            }
+        }
+
+        // Ejecutar la función al cargar la página
+        cargarUsuarios();
+    </script>
+</body>
+</html>
