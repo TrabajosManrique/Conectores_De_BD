@@ -1,70 +1,46 @@
 const express = require('express');
 const sqlite3 = require('sqlite3').verbose();
-const path = require('path');
-
 const app = express();
 const db = new sqlite3.Database('./database.db');
-
 
 db.serialize(() => {
     db.run(`CREATE TABLE IF NOT EXISTS usuarios (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
-        nombre TEXT NOT NULL,
-        email TEXT NOT NULL,
+        nombre TEXT NOT NULL, email TEXT NOT NULL,
         creado DATETIME DEFAULT CURRENT_TIMESTAMP
     )`);
-
-    db.get("SELECT COUNT(*) AS count FROM usuarios", (err, row) => {
-        if (row && row.count === 0) {
+    db.get("SELECT COUNT(*) AS c FROM usuarios", (err, row) => {
+        if (row && row.c === 0) {
             const stmt = db.prepare("INSERT INTO usuarios (nombre, email) VALUES (?, ?)");
-            stmt.run("Uriel Abraham", "uriel@example.com");
-            stmt.run("María García", "maria@example.com");
-            stmt.run("Carlos Rodríguez", "carlos@example.com");
+            ["Uriel Abraham|uriel@example.com", "María García|maria@example.com", "Carlos Rodríguez|carlos@example.com"]
+                .forEach(u => stmt.run(u.split('|')));
             stmt.finalize();
         }
     });
 });
 
-// Servir la vista HTML
+app.get('/api/usuarios', (req, res) => {
+    db.all("SELECT * FROM usuarios", [], (err, rows) => res.json(rows));
+});
+
 app.get('/', (req, res) => {
-    res.send(`
-    <!DOCTYPE html>
+    res.send(`<!DOCTYPE html>
     <html lang="es">
-    <head>
-        <meta charset="UTF-8">
-        <title>Visualizador SQLite</title>
-        <style>
-            body { font-family: sans-serif; padding: 20px; background: #f4f4f9; }
-            table { width: 100%; border-collapse: collapse; background: #fff; }
-            th, td { border: 1px solid #ccc; padding: 10px; text-align: left; }
-            th { background: #007bff; color: white; }
-        </style>
+    <head><meta charset="UTF-8"><title>SQLite</title>
+    <style>body{font-family:sans-serif;padding:20px;background:#f4f6f9}table{width:100%;border-collapse:collapse;background:#fff}th,td{border:1px solid #ddd;padding:10px}th{background:#007bff;color:#fff}</style>
     </head>
     <body>
-        <h2>Lista de Usuarios (SQLite)</h2>
-        <table>
-            <thead><tr><th>ID</th><th>Nombre</th><th>Email</th><th>Fecha</th></tr></thead>
-            <tbody id="datos"></tbody>
-        </table>
+        <h2>Lista de Usuarios</h2>
+        <table><thead><tr><th>ID</th><th>Nombre</th><th>Email</th><th>Fecha</th></tr></thead>
+        <tbody id="t"><tr><td colspan="4">Cargando...</td></tr></tbody></table>
         <script>
-            fetch('/api/usuarios')
-                .then(r => r.json())
-                .then(data => {
-                    document.getElementById('datos').innerHTML = data.map(u => 
-                        \`<tr><td>\${u.id}</td><td>\${u.nombre}</td><td>\${u.email}</td><td>\${u.creado}</td></tr>\`
-                    ).join('');
-                });
+            fetch('/api/usuarios').then(r => r.json()).then(data => {
+                document.getElementById('t').innerHTML = data.map(u => 
+                    \`<tr><td>\${u.id}</td><td>\${u.nombre}</td><td>\${u.email}</td><td>\${u.creado}</td></tr>\`
+                ).join('');
+            });
         </script>
-    </body>
-    </html>
-    `);
+    </body></html>`);
 });
 
-app.get('/api/usuarios', (req, res) => {
-    db.all("SELECT * FROM usuarios", [], (err, rows) => {
-        if (err) return res.status(500).json({ error: err.message });
-        res.json(rows);
-    });
-});
-
-app.listen(3000, () => console.log('Servidor listo en http://localhost:3000'));
+app.listen(3000, () => console.log('Servidor en http://localhost:3000'));
